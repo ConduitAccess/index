@@ -33,7 +33,7 @@
      pronounced, as the intro screen's card-stock texture. */
   .grain-overlay{
     position:fixed; inset:0; z-index:10000; pointer-events:none;
-    filter:url(#filmGrain); opacity:0.09; mix-blend-mode:overlay;
+    filter:url(#filmGrain); opacity:0.05;
   }
 
   .intro-overlay{
@@ -44,7 +44,7 @@
   }
   .intro-overlay::before{
     content:''; position:absolute; inset:0;
-    filter:url(#filmGrain); opacity:0.3; mix-blend-mode:overlay; pointer-events:none;
+    filter:url(#filmGrain); opacity:0.16; pointer-events:none;
   }
   .intro-overlay.is-hidden{ opacity:0; pointer-events:none; }
   .intro-logo-wrap{ position:relative; z-index:1; width:min(480px,78vw); }
@@ -316,6 +316,10 @@
     position:absolute; inset:0; pointer-events:none;
     background:linear-gradient(0deg, rgba(33,31,27,0.94) 0%, rgba(33,31,27,0.5) 40%, rgba(33,31,27,0.05) 70%, transparent 100%);
   }
+  #access .offer-slide-overlay, #consulting .offer-slide-overlay{
+    background-image:linear-gradient(0deg, rgba(33,31,27,0.94) 0%, rgba(33,31,27,0.5) 40%, rgba(33,31,27,0.05) 70%, transparent 100%);
+    background-color:rgba(0,0,0,0.28);
+  }
   .offer-slide-copy{
     position:absolute; left:0; right:0; bottom:0; padding:clamp(1.5rem,4vw,3rem);
     max-width:40rem;
@@ -370,7 +374,7 @@
   }
   .showcase::before{
     content:''; position:absolute; inset:0; z-index:0;
-    filter:url(#filmGrain); opacity:0.3; mix-blend-mode:overlay; pointer-events:none;
+    filter:url(#filmGrain); opacity:0.16; pointer-events:none;
   }
   .showcase > .container{ position:relative; z-index:1; }
   .showcase .section-head p{ color:var(--platinum); }
@@ -481,7 +485,7 @@
   }
   .contact::before{
     content:''; position:absolute; inset:0; z-index:0;
-    filter:url(#filmGrain); opacity:0.3; mix-blend-mode:overlay; pointer-events:none;
+    filter:url(#filmGrain); opacity:0.16; pointer-events:none;
   }
   .contact-grid{ position:relative; z-index:1; max-width:var(--maxw); margin:0 auto; display:flex; flex-direction:column; gap:3.5rem; }
   .contact-info h2{ font-size:clamp(2rem,4.2vw,3rem); }
@@ -793,15 +797,16 @@
       <div class="contact-grid">
         <div class="contact-info" data-reveal>
           <h2>Request<br><span class="gold-text">Access</span></h2>
-          <p>Conduit Access operates by invitation and referral. Tell us where you'd like to go, and the desk will follow up directly — usually within 48 hours.</p>
+          <p>We build Conduit Access around exceptional relationships. Let us know what kinds of experiences and value you're looking to bring to your clients, and we'll work with you to take them to the next level.</p>
           <div class="contact-detail">
-            <a href="mailto:desk@conduitaccess.com">desk@conduitaccess.com</a>
-            <a href="tel:+18005550142">+1 (800) 555-0142</a>
+            <a href="mailto:experiences@conduitaccess.com">experiences@conduitaccess.com</a>
           </div>
           <p class="contact-note">Every request is reviewed individually. Conduit Access does not sell tickets to the public or list events for open sale.</p>
         </div>
         <div class="contact-form" data-reveal>
-          <form id="accessForm">
+          <form id="accessForm" name="access-request" method="POST" data-netlify="true" data-netlify-honeypot="bot-field">
+            <input type="hidden" name="form-name" value="access-request">
+            <p class="form-hp" hidden><label>Don't fill this out if you're human: <input name="bot-field"></label></p>
             <div class="form-row">
               <div class="form-field">
                 <label for="fname">Full name</label>
@@ -888,10 +893,29 @@
 
     var form = document.getElementById('accessForm');
     var success = document.getElementById('formSuccess');
+    function encodeFormData(data){
+      return Object.keys(data).map(function(key){
+        return encodeURIComponent(key) + '=' + encodeURIComponent(data[key]);
+      }).join('&');
+    }
     form.addEventListener('submit', function(e){
       e.preventDefault();
-      form.style.display = 'none';
-      success.classList.add('is-visible');
+      var data = {};
+      new FormData(form).forEach(function(value, key){ data[key] = value; });
+      fetch('/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: encodeFormData(data)
+      }).then(function(){
+        form.style.display = 'none';
+        success.classList.add('is-visible');
+      }).catch(function(){
+        // Even if the network request fails (e.g. no connection), don't
+        // leave the person staring at a broken form — the desk can also
+        // be reached directly at the email address above.
+        form.style.display = 'none';
+        success.classList.add('is-visible');
+      });
     });
   })();
 </script>
@@ -1007,10 +1031,9 @@
 
     function goTo(index){
       index = Math.max(0, Math.min(slides.length - 1, index));
-      slides[index].scrollIntoView({
-        behavior: reduceMotionOffer ? 'auto' : 'smooth',
-        block: 'nearest',
-        inline: 'start'
+      track.scrollTo({
+        left: index * track.clientWidth,
+        behavior: reduceMotionOffer ? 'auto' : 'smooth'
       });
     }
     if(prevBtn) prevBtn.addEventListener('click', function(){ goTo(current - 1); });
